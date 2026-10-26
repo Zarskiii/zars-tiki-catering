@@ -1,6 +1,3 @@
-import { ArrowRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { TikiButton } from "@/components/ui/tiki-button";
 
 const Footer = () => {
   return (

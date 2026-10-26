@@ -1,4 +1,3 @@
-import { TikiButton } from "@/components/ui/tiki-button";
 
 const About = () => {
   return (
