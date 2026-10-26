@@ -1,3 +1,4 @@
+import { createPackageLink } from "@/lib/catering-inquiry";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { TikiButton } from "@/components/ui/tiki-button";
 import Navbar from "@/components/Navbar";
@@ -73,11 +74,6 @@ const CateringPage = () => {
       ]
     }
   ];
-
-  // Function to create URL query parameters for package selection
-  const createPackageLink = (packageName: string) => {
-    return `/#contact?package=${encodeURIComponent(packageName)}`;
-  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

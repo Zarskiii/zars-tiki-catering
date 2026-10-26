@@ -2,68 +2,58 @@ import { useState, useEffect, useRef } from "react";
 import { TikiButton } from "@/components/ui/tiki-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, Phone, MapPin, Copy, Check, Calendar, Users, MapPinned, Loader2 } from "lucide-react";
+import { Mail, Phone, Copy, Check, Calendar, Users, MapPinned, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import emailjs from '@emailjs/browser';
-
-// Replace these with your actual EmailJS credentials
-const EMAILJS_SERVICE_ID = "service_xxxx";  // Update this with your Service ID
-const EMAILJS_TEMPLATE_ID = "template_xxxx"; // Update this with your Template ID
-const EMAILJS_PUBLIC_KEY = "xxxx";          // Update this with your Public Key
+import { useLocation } from "react-router-dom";
+import {
+  CATERING_EMAIL, emptyInquiry, getEmailConfig, inquiryMailto, inquiryText,
+  packageMessage, selectedPackage, sendInquiry,
+} from "@/lib/catering-inquiry";
 
 const Contact = () => {
   const { toast } = useToast();
-  const formRef = useRef<HTMLFormElement>(null);
+  const location = useLocation();
+  const config = getEmailConfig();
+  const inFlight = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    eventDate: "",
-    eventType: "",
-    guestCount: "",
-    location: "",
-    message: ""
-  });
-  
+  const [formData, setFormData] = useState({ ...emptyInquiry });
+  const [deliveryState, setDeliveryState] = useState<"idle" | "manual" | "error" | "sent">("idle");
+  const [copyNotice, setCopyNotice] = useState("");
+  const packageName = selectedPackage(location.search, location.hash);
+
   const [copied, setCopied] = useState(false);
   const address = "3604 Pony Express Parkway, Eagle Mountain, UT, United States, Utah";
 
-  // Check for URL parameters on mount to pre-fill the form
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const packageParam = searchParams.get('package');
-    
-    if (packageParam) {
-      // Scroll to the contact form
-      const contactSection = document.getElementById('contact');
-      if (contactSection) {
-        contactSection.scrollIntoView({ behavior: 'smooth' });
-      }
-      
-      // Pre-fill the form with package information
-      setFormData(prev => ({
-        ...prev,
-        eventType: "Catering",
-        message: `I'm interested in the ${packageParam}. Please provide more information.`
-      }));
-      
-      // Show a toast notification
-      toast({
-        title: "Package Selected",
-        description: `You've selected the ${packageParam}. Please complete the form to request a quote.`,
-        variant: "default",
-      });
+    if (!packageName) return;
+    setDeliveryState("idle");
+    setCopyNotice("");
+    setFormData(prev => ({
+      ...prev,
+      packageName,
+      eventType: prev.eventType || "Catering",
+      message: !prev.message || prev.message === packageMessage(prev.packageName)
+        ? packageMessage(packageName) : prev.message,
+    }));
+  }, [packageName, location.key]);
+
+  useEffect(() => {
+    if (packageName || location.hash === "#contact") {
+      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [toast]);
+  }, [packageName, location.hash, location.key]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    setCopyNotice("");
+    setDeliveryState(state => state === "sent" ? "idle" : state);
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
+    setCopyNotice("");
+    setDeliveryState(state => state === "sent" ? "idle" : state);
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -73,84 +63,52 @@ const Contact = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyInquiry = async () => {
+    try {
+      await navigator.clipboard.writeText(inquiryText(formData));
+      setCopyNotice("Inquiry copied. Paste it into an email and press Send. It has not been sent here.");
+    } catch {
+      setCopyNotice("Copy was unavailable. Select and copy the inquiry text below, then email it to us.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate form
-    if (!formData.name || !formData.email || !formData.message) {
+    if (inFlight.current) return;
+
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields.",
+        title: "Please complete the required fields",
+        description: "Enter your name, email address, and event details.",
         variant: "destructive",
       });
       return;
     }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Create an object with template parameters
-      const templateParams = {
-        from_name: formData.name,
-        from_email: formData.email,
-        phone: formData.phone,
-        event_date: formData.eventDate,
-        event_type: formData.eventType,
-        guest_count: formData.guestCount,
-        location: formData.location,
-        message: formData.message,
-      };
-      
-      // Send email using EmailJS
-      if (EMAILJS_SERVICE_ID === "service_xxxx") {
-        // If EmailJS not configured yet, simulate success
-        console.log("EmailJS not configured yet. Form data:", templateParams);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      } else {
-        // Actually send the email
-        await emailjs.send(
-          EMAILJS_SERVICE_ID, 
-          EMAILJS_TEMPLATE_ID, 
-          templateParams, 
-          EMAILJS_PUBLIC_KEY
-        );
-      }
 
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        eventDate: "",
-        eventType: "",
-        guestCount: "",
-        location: "",
-        message: ""
-      });
-      
-      if (formRef.current) {
-        formRef.current.reset();
-      }
-      
-      // Show success toast notification
-      toast({
-        title: "Quote Request Sent!",
-        description: "Thanks for your message! We'll get back to you within 24 hours.",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error("Error sending email:", error);
-      toast({
-        title: "Error",
-        description: "There was a problem sending your message. Please try again later.",
-        variant: "destructive",
-      });
+    setCopyNotice("");
+    if (!config) {
+      setDeliveryState("manual");
+      return;
+    }
+
+    inFlight.current = true;
+    setIsSubmitting(true);
+    setDeliveryState("idle");
+    try {
+      await sendInquiry(formData, config);
+      setFormData({ ...emptyInquiry });
+      setDeliveryState("sent");
+    } catch {
+      // Do not log provider responses or customer inquiry details.
+      setDeliveryState("error");
     } finally {
+      inFlight.current = false;
       setIsSubmitting(false);
     }
   };
 
   const eventTypes = [
+    "Catering",
     "Birthday Party",
     "Wedding",
     "Corporate Event",
@@ -195,8 +153,8 @@ const Contact = () => {
                   </div>
                   <div>
                     <p className="font-medium text-tiki-dark">Email Us</p>
-                    <a href="mailto:aloha@zarstikishack.com" className="text-tiki-blue hover:underline">
-                      aloha@zarstikishack.com
+                    <a href={`mailto:${CATERING_EMAIL}`} className="text-tiki-blue hover:underline">
+                      {CATERING_EMAIL}
                     </a>
                   </div>
                 </div>
@@ -264,7 +222,21 @@ const Contact = () => {
             <div className="bg-white rounded-xl p-8 shadow-lg border border-gray-100">
               <h3 className="text-2xl font-bold text-tiki-dark mb-6">Request Catering Quote</h3>
               
-              <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+              {!config && (
+                <p className="mb-6 text-sm text-gray-700">
+                  Online sending is currently unavailable. Complete this form to prepare an email,
+                  then send it from your email app. Nothing is sent automatically.
+                </p>
+              )}
+              <form onSubmit={handleSubmit} className="space-y-6" aria-label="Catering inquiry" aria-busy={isSubmitting}>
+                {formData.packageName && (
+                  <div>
+                    <label htmlFor="packageName" className="block text-sm font-medium text-gray-700 mb-1">
+                      Selected catering package
+                    </label>
+                    <Input id="packageName" value={formData.packageName} readOnly />
+                  </div>
+                )}
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                     Your Name*
@@ -342,7 +314,7 @@ const Contact = () => {
                       onValueChange={(value) => handleSelectChange("eventType", value)}
                       disabled={isSubmitting}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="eventType">
                         <SelectValue placeholder="Select event type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -367,7 +339,7 @@ const Contact = () => {
                         onValueChange={(value) => handleSelectChange("guestCount", value)}
                         disabled={isSubmitting}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="guestCount">
                           <SelectValue placeholder="Expected guests" />
                         </SelectTrigger>
                         <SelectContent>
@@ -429,13 +401,37 @@ const Contact = () => {
                       Sending Request...
                     </span>
                   ) : (
-                    "Submit Request"
+                    config ? "Send Quote Request" : "Prepare Email Request"
                   )}
                 </TikiButton>
                 
-                <p className="text-center text-sm text-gray-500 mt-2">
-                  We typically respond to inquiries within 24 hours
-                </p>
+                {deliveryState === "sent" && (
+                  <p role="status" className="text-sm text-tiki-dark">
+                    Your quote request was accepted by our email service. Thank you for your inquiry.
+                  </p>
+                )}
+                {(deliveryState === "manual" || deliveryState === "error") && (
+                  <div className="space-y-3 rounded-lg border border-tiki-blue p-4">
+                    <p role={deliveryState === "error" ? "alert" : "status"}>
+                      {deliveryState === "error"
+                        ? "We couldn't confirm your request was sent. Your details have been kept. You can retry or email us directly; retrying may send a duplicate."
+                        : "Your request has not been sent. Open the email draft below, then press Send in your email app."}
+                    </p>
+                    <a href={inquiryMailto(formData)} className="block font-medium text-tiki-dark underline">
+                      Open email draft
+                    </a>
+                    <p className="text-sm">
+                      If no email app opens or the draft is incomplete, copy the full inquiry below
+                      and email it to {CATERING_EMAIL}. Opening or copying a draft does not send it.
+                    </p>
+                    <TikiButton type="button" variant="outline" onClick={handleCopyInquiry}>
+                      Copy inquiry
+                    </TikiButton>
+                    {copyNotice && <p role="status" className="text-sm">{copyNotice}</p>}
+                    <label htmlFor="inquiryPreview" className="block text-sm font-medium">Full inquiry to copy</label>
+                    <Textarea id="inquiryPreview" readOnly value={inquiryText(formData)} rows={8} />
+                  </div>
+                )}
               </form>
             </div>
           </div>

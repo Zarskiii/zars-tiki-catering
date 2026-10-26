@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.3-blue.svg)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.4-brightgreen.svg)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.3-brightgreen.svg)](https://vitejs.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
 
 A modern and responsive website for Zar's Tiki Shack, a Hawaiian shave ice catering service. Experience the taste of authentic Hawaiian shave ice at your next event!
@@ -22,32 +22,32 @@ A modern and responsive website for Zar's Tiki Shack, a Hawaiian shave ice cater
 ## 🛠️ Technologies Used
 
 - **Frontend Framework**: React 18.3
-- **Build Tool**: Vite 5.4
+- **Build Tool**: Vite 6.3
 - **Language**: TypeScript 5.5
 - **Styling**: Tailwind CSS 3.4
 - **UI Components**: shadcn/ui
 - **Routing**: React Router 6.26
-- **Form Handling**: React Hook Form
+- **Form Handling**: Controlled React form with browser validation
 - **Email Integration**: EmailJS
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
+- Node.js 22 (used in CI)
 - npm or yarn
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/tiki-catering-clone.git
+git clone https://github.com/Zarskiii/zars-tiki-catering.git
 
 # Navigate to the project directory
-cd tiki-catering-clone
+cd zars-tiki-catering
 
 # Install dependencies
-npm install
+npm ci
 ```
 
 ### Development
@@ -57,7 +57,7 @@ npm install
 npm run dev
 ```
 
-The development server will start at http://localhost:8080 (or another port if 8080 is in use).
+The development server will start at http://localhost:8081/zars-tiki-catering/ (or another port if 8081 is in use).
 
 ### Production Build
 
@@ -83,7 +83,7 @@ src/
 
 ## 📧 Contact Form Setup
 
-The contact form is powered by EmailJS for serverless email functionality. [View setup instructions](#contact-form-setup)
+The form uses EmailJS only when all build-time settings are provided. Otherwise it prepares an email draft that the customer must send themselves. [Setup and delivery verification](docs/catering-inquiry.md).
 
 ## 🌐 Deployment Options
 
@@ -111,53 +111,23 @@ The contact form is powered by EmailJS for serverless email functionality. [View
    - Launch directly from GitHub
    - Full development environment in the browser
 
-## 📝 Contact Form Setup
+## 📝 Inquiry Delivery and Validation
 
-The contact form on this website is powered by EmailJS, which allows the form to send emails directly from the browser without needing a backend server.
+See [the inquiry delivery guide](docs/catering-inquiry.md) for environment variables,
+EmailJS template fields, manual email behavior, deployment prerequisites, and an
+end-to-end verification checklist. No working credentials or live deployment are
+assumed by this repository.
 
-### Setting up EmailJS for the Contact Form
+```bash
+npm test
+npm run typecheck
+npm run lint
+npm run build
+```
 
-1. **Create an EmailJS Account**
-   - Go to [EmailJS website](https://www.emailjs.com/) and sign up for a free account
-   - The free tier allows 200 emails per month
-
-2. **Add an Email Service**
-   - From your EmailJS dashboard, go to "Email Services"
-   - Click "Add New Service"
-   - Choose your email provider (Gmail, Outlook, etc.)
-   - Follow the authorization steps to connect your email
-
-3. **Create an Email Template**
-   - Go to "Email Templates" in your dashboard
-   - Click "Create New Template"
-   - Use the following dynamic variables in your template:
-     - `{{name}}` - The sender's name
-     - `{{email}}` - The sender's email
-     - `{{phone}}` - The sender's phone number
-     - `{{event_date}}` - The event date
-     - `{{event_type}}` - The type of event
-     - `{{guest_count}}` - The number of guests
-     - `{{location}}` - The event location
-     - `{{message}}` - The message content
-
-4. **Update the Contact Component**
-   - Open `src/components/Contact.tsx`
-   - Update the following constants with your EmailJS credentials:
-     ```javascript
-     const EMAILJS_SERVICE_ID = "service_xxxx";  // Update with your Service ID
-     const EMAILJS_TEMPLATE_ID = "template_xxxx"; // Update with your Template ID
-     const EMAILJS_PUBLIC_KEY = "xxxx";          // Update with your Public Key
-     ```
-
-5. **Test the Form**
-   - Fill out the contact form on your website
-   - Submit the form and verify that you receive the email
-   - Check for any errors in the browser console
-
-### Notes
-- The EmailJS Public Key is safe to include in client-side code
-- For increased security, consider adding Google reCAPTCHA to your form
-- The form includes basic validation for required fields
+The regression suite mocks EmailJS: it never sends customer inquiries. It covers
+successful service acceptance, errors and timeouts, manual email/copy fallback,
+validation, duplicate submission prevention, and package links under HashRouter.
 
 ## 🤝 Contributing
 
